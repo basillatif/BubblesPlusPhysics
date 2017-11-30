@@ -148,6 +148,31 @@
     /**
      * Sets up the given jQuery collection as the drawing area(s).
      */
+
+    let createBubble = event => {
+        $.each(event.changedTouches, (index, touch) => {
+            let newPosition = {left: touch.pageX, top: touch.pageY};
+            let newBubble = $("<div></div>")
+            
+                    .appendTo($("#drawing-area"))
+                    .addClass("box")
+                    .addClass("box-highlight")
+                    .bind("touchmove", trackDrag)
+                    .width(10)
+                    .height(10)
+                    .bind("touchmove", trackDrag)
+                    .bind("touchend", endDrag)
+                    .offset(newPosition)
+                    .data({
+                        position: $(element).offset(),
+                        velocity: { x: 0, y: 0, z: 0 },
+                        acceleration: { x: 0, y: 0, z: 0 }
+                    });
+
+        });
+    };
+
+
     let setDrawingArea = jQueryElements => {
         // Set up any pre-existing box elements for touch behavior.
         jQueryElements
@@ -156,9 +181,9 @@
             // Event handler setup must be low-level because jQuery
             // doesn't relay touch-specific event properties.
             .each((index, element) => {
-                $(element)
-                    .bind("touchmove", trackDrag)
-                    .bind("touchend", endDrag);
+                $(element).bind("touchmove", trackDrag)
+                .bind("touchend", endDrag)
+                .bind("touchstart", createBubble);
             })
 
             .find("div.box").each((index, element) => {
@@ -185,7 +210,7 @@
     };
 
     // No arrow function here because we don't want lexical scoping.
-    $.fn.boxesWithPhysics = function () {
+    $.fn.bubblesWithPhysics = function () {
         setDrawingArea(this);
         return this;
     };
