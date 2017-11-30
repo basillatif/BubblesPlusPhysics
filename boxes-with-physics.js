@@ -77,7 +77,7 @@
      * The motion update routine.
      */
     const FRICTION_FACTOR = 0.99;
-    const ACCELERATION_COEFFICIENT = 0.05;
+    const ACCELERATION_COEFFICIENT = -0.05;
     const FRAME_RATE = 120;
     const FRAME_DURATION = 1000 / FRAME_RATE;
 

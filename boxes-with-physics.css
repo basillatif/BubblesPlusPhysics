@@ -8,6 +8,7 @@
 .box {
     border: thin solid black;
     position: absolute;
+    border-radius: 50%;
 }
 
 .box-highlight {
