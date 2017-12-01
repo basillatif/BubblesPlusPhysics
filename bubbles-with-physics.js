@@ -1,3 +1,6 @@
+let drawBubbleMap = new Map();
+let moveBubbleMap = new Map();
+
 ($ => {
 
     /**
@@ -14,12 +17,22 @@
                     left: touch.pageX - touch.target.deltaX,
                     top: touch.pageY - touch.target.deltaY
                 };
-
                 // This form of `data` allows us to update values one attribute at a time.
                 $(touch.target).data('position', newPosition);
                 touch.target.movingBox.offset(newPosition);
             }
-        });
+            else if (drawBubbleMap.has(touch.identifier)) {
+            let Position = {
+                left : (touch.target.anchorX < touch.pageX) ? touch.target.anchorX : touch.pageX,
+                top : (touch.target.anchorY < touch.pageY) ? touch.target.anchorY : touch.pageY
+            };
+                drawingBox.get(touch.indentifier)
+                    .width(Math.abs(touch.pageY - touch.target.anchorY + Math.abs(touch.pageX -touch.target.anchorX)) / 2)
+                    .height(Math.abs(touch.pageY - touch.target.anchorY + Math.abs(touch.pageX -touch.target.anchorX)) / 2)
+                    .data({Position: Position})
+                    .offset(Position);
+                }   
+            });
 
         // Don't do any touch scrolling.
         event.preventDefault();
@@ -32,11 +45,25 @@
         $.each(event.changedTouches, (index, touch) => {
             if (touch.target.movingBox) {
                 // Change state to "not-moving-anything" by clearing out
-                // touch.target.movingBox.
+                // touch.target.movingBox.   
                 touch.target.movingBox = null;
-            }
-        });
-    };
+                moveBubbleMap.delete(touch.identifier);
+                // touch.target.movingBox(highlight)
+                // touch.target.movingBox(unhighlight)
+                // touch.target.movingBox(startMove);
+
+            } else if (touch.target.drawingBox) {
+                drawBubbleMap.delete(touch.indentifier);
+                touch.target.drawingBox
+                .touchmove(trackDrag)
+                .touchend(unhighlight)
+                .touchstart(startMove)
+                touch.target.movingBox = null;
+                }   
+            }); 
+            event.preventDefault();
+        };
+
 
     /**
      * Indicates that an element is unhighlighted.
@@ -157,17 +184,20 @@
                     .appendTo($("#drawing-area"))
                     .addClass("box")
                     .addClass("box-highlight")
-                    .bind("touchmove", trackDrag)
-                    .width(10)
-                    .height(10)
+                    .width(50)
+                    .height(50)
                     .bind("touchmove", trackDrag)
                     .bind("touchend", endDrag)
+                    .bind("touchend", unhighlight)
                     .offset(newPosition)
                     .data({
                         position: $(element).offset(),
                         velocity: { x: 0, y: 0, z: 0 },
                         acceleration: { x: 0, y: 0, z: 0 }
                     });
+                    // newBubble.movingBox = targetBox;
+                    // newBubble.deltaX = touch.pageX - startOffset.left;
+                    // newBubble.deltaY = touch.pageY - startOffest.top;
 
         });
     };
@@ -181,9 +211,12 @@
             // Event handler setup must be low-level because jQuery
             // doesn't relay touch-specific event properties.
             .each((index, element) => {
-                $(element).bind("touchmove", trackDrag)
+                $(element)
+                .bind("touchstart", createBubble)
+                .bind("touchstart", startMove)                
+                .bind("touchmove", trackDrag)
                 .bind("touchend", endDrag)
-                .bind("touchstart", createBubble);
+                
             })
 
             .find("div.box").each((index, element) => {
