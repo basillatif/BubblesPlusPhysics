@@ -26,15 +26,14 @@ const MAX_DIAMETER = 200;
                 bubbleTouched.data('oldPosition', bubbleTouched.offset());
                 bubbleTouched.data('position', newPosition);
                 bubbleTouched.offset(newPosition);
-              }
-            // BL-I added this 'else if' clause to reflect what we do in case that we are moving a new bubble
-            else if (drawBubbleMap.has(touch.identifier)) {
+                // BL-I added this 'else if' clause to reflect what we do in case that we are moving a new bubble
+            } else if (drawBubbleMap.has(touch.identifier)) {
                 let bubbleTouched = drawBubbleMap.get(touch.identifier);
                 let anchorX = bubbleTouched.data('oldPosition').left + (INITIAL_DIAMETER);
-                let anchorY = boubleTouched.data('oldPositon').top + (INITIAL_DIAMETER);
+                let anchorY = bubbleTouched.data('oldPositon').top + (INITIAL_DIAMETER);
                 let newPosition = {
-                    left : (anchorX < touch.pageX) ? anchorX : touch.pageX,
-                    top : (anchorY < touch.pageY) ? anchorY : touch.pageY
+                    left: (anchorX < touch.pageX) ? anchorX : touch.pageX,
+                    top: (anchorY < touch.pageY) ? anchorY : touch.pageY
                 };
                 let newWidth = Math.abs(touch.pageX - anchorX);
                 let newHeight = Math.abs(touch.pageY - anchorY);
@@ -48,9 +47,8 @@ const MAX_DIAMETER = 200;
                     .bind("touchend", unhighlight)
                     .bind("touchend", endDrag)
                     .addClass("box-highlight");
-                }
-            });
-
+            }
+        });
         // Don't do any touch scrolling.
         event.preventDefault();
     };
@@ -145,8 +143,8 @@ const MAX_DIAMETER = 200;
                 if (!$element.data('isDrawing')) {
                     checkHold($element);
                 }
-                if($element.data('hasNotMoved') > HOLD_TIME) {
-                    let newPosition= {
+                if ($element.data('hasNotMoved') > HOLD_TIME) {
+                    let newPosition = {
                         left: $element.offset().left - (GROWTH_SPEED / 2),
                         top: $element.offset().top - (GROWTH_SPEED / 2)
                     };
@@ -155,8 +153,8 @@ const MAX_DIAMETER = 200;
                         height: $element.height() + GROWTH_SPEED
                     });
                     $element.offset(newPosition);
-                    $element[0].deltaX += (GROWTH_SPEED / 2)
-                    $element[0].deltaY += (GROWTH_SPEED / 2)
+                    $element[0].deltaX += (GROWTH_SPEED / 2);
+                    $element[0].deltaY += (GROWTH_SPEED / 2);
                 }
                 if ($element.width() > MAX_DIAMETER) {
                     moveBubbleMap.delete($element.data('touchId'));
@@ -165,44 +163,44 @@ const MAX_DIAMETER = 200;
             } else {
 
             // Note how we base all of our calculations from the _model_...
-            let s = $element.data('position');
-            let v = $element.data('velocity');
-            let a = $element.data('acceleration');
+                let s = $element.data('position');
+                let v = $element.data('velocity');
+                let a = $element.data('acceleration');
 
             // The standard update-bounce sequence.
-            s.left += v.x;
-            s.top -= v.y;
+                s.left += v.x;
+                s.top -= v.y;
 
-            v.x += (a.x * ACCELERATION_COEFFICIENT);
-            v.y += (a.y * ACCELERATION_COEFFICIENT);
-            v.z += (a.z * ACCELERATION_COEFFICIENT);
+                v.x += (a.x * ACCELERATION_COEFFICIENT);
+                v.y += (a.y * ACCELERATION_COEFFICIENT);
+                v.z += (a.z * ACCELERATION_COEFFICIENT);
 
-            v.x *= FRICTION_FACTOR;
-            v.y *= FRICTION_FACTOR;
-            v.z *= FRICTION_FACTOR;
+                v.x *= FRICTION_FACTOR;
+                v.y *= FRICTION_FACTOR;
+                v.z *= FRICTION_FACTOR;
 
-            let $parent = $element.parent();
-            let bounds = {
-                left: $parent.offset().left,
-                top: $parent.offset().top
-            };
+                let $parent = $element.parent();
+                let bounds = {
+                    left: $parent.offset().left,
+                    top: $parent.offset().top
+                };
 
-            bounds.right = bounds.left + $parent.width();
-            bounds.bottom = bounds.top + $parent.height();
+                bounds.right = bounds.left + $parent.width();
+                bounds.bottom = bounds.top + $parent.height();
 
-            if ((s.left <= bounds.left) || (s.left + $element.width() > bounds.right)) {
-                s.left = (s.left <= bounds.left) ? bounds.left : bounds.right - $element.width();
-                v.x = -v.x;
-            }
+                if ((s.left <= bounds.left) || (s.left + $element.width() > bounds.right)) {
+                    s.left = (s.left <= bounds.left) ? bounds.left : bounds.right - $element.width();
+                    v.x = -v.x;
+                }
 
-            if ((s.top <= bounds.top) || (s.top + $element.height() > bounds.bottom)) {
-                s.top = (s.top <= bounds.top) ? bounds.top : bounds.bottom - $element.height();
-                v.y = -v.y;
-            }
+                if ((s.top <= bounds.top) || (s.top + $element.height() > bounds.bottom)) {
+                    s.top = (s.top <= bounds.top) ? bounds.top : bounds.bottom - $element.height();
+                    v.y = -v.y;
+                }
 
             // ...and the final result is sent on a one-way trip to the _view_.
-            $(element).offset(s);
-        }
+                $(element).offset(s);
+            }
         });
 
 
@@ -237,13 +235,13 @@ const MAX_DIAMETER = 200;
                     isDrawing: true,
                     touchId: touch.identifier
                 });
-                //$("<div>test</div>").appendTo($("#drawing-area"));
+                // $("<div>test</div>").appendTo($("#drawing-area"));
             drawBubbleMap.set(touch.identifier, newBubble);
                 // newBubble.movingBox = targetBox;
                 // newBubble.deltaX = touch.pageX - startOffset.left;
                 // newBubble.deltaY = touch.pageY - startOffest.top;
 
-        })
+        });
     };
 
     let checkHold = target => {
@@ -258,7 +256,7 @@ const MAX_DIAMETER = 200;
         } else {
             target.data('hasNotMoved', 0);
         }
-    }
+    };
 
     let setDrawingArea = jQueryElements => {
         // Set up any pre-existing box elements for touch behavior.
@@ -271,7 +269,7 @@ const MAX_DIAMETER = 200;
                 $(element)
                 .bind("touchstart", createBubble)
                 .bind("touchmove", trackDrag)
-                .bind("touchend", endDrag)
+                .bind("touchend", endDrag);
 
             })
 
