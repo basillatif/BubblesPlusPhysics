@@ -1,6 +1,10 @@
 let drawBubbleMap = new Map();
 let moveBubbleMap = new Map();
-
+const INITIAL_DIAMETER = 20;
+const HOLD_SENSITIVITY = 0.01;
+const HOLD_TIME = 50;
+const GROWTH_SPEED = 1.5;
+const MAX_DIAMETER = 200;
 ($ => {
 
     /**
@@ -11,28 +15,39 @@ let moveBubbleMap = new Map();
     let trackDrag = event => {
         $.each(event.changedTouches, function (index, touch) {
             // Don't bother if we aren't tracking anything.
-            if (touch.target.movingBox) {
+            if (moveBubbleMap.has(touch.identifier)) {
+                let bubbleTouched = moveBubbleMap.get(touch.identifier);
                 // Reposition the object.
                 let newPosition = {
                     left: touch.pageX - touch.target.deltaX,
                     top: touch.pageY - touch.target.deltaY
                 };
                 // This form of `data` allows us to update values one attribute at a time.
-                $(touch.target).data('position', newPosition);
-                touch.target.movingBox.offset(newPosition);
+                bubbleTouched.data('oldPosition', bubbleTouched.offset());
+                bubbleTouched.data('position', newPosition);
+                bubbleTouched.offset(newPosition);
               }
             // BL-I added this 'else if' clause to reflect what we do in case that we are moving a new bubble
             else if (drawBubbleMap.has(touch.identifier)) {
-                // let Position = {
-                //     left : (touch.target.anchorX < touch.pageX) ? touch.target.anchorX : touch.pageX,
-                //     top : (touch.target.anchorY < touch.pageY) ? touch.target.anchorY : touch.pageY
-                // };
-                drawBubbleMap.get(touch.identifier)
-                    // .width(Math.abs(touch.pageY - touch.target.anchorY + Math.abs(touch.pageX -touch.target.anchorX)) / 2)
-                    // .height(Math.abs(touch.pageY - touch.target.anchorY + Math.abs(touch.pageX -touch.target.anchorX)) / 2)
-                    // .data({Position: Position})
-                    // .offset(Position);
-                    
+                let bubbleTouched = drawBubbleMap.get(touch.identifier);
+                let anchorX = bubbleTouched.data('oldPosition').left + (INITIAL_DIAMETER);
+                let anchorY = boubleTouched.data('oldPositon').top + (INITIAL_DIAMETER);
+                let newPosition = {
+                    left : (anchorX < touch.pageX) ? anchorX : touch.pageX,
+                    top : (anchorY < touch.pageY) ? anchorY : touch.pageY
+                };
+                let newWidth = Math.abs(touch.pageX - anchorX);
+                let newHeight = Math.abs(touch.pageY - anchorY);
+                let radius = Math.round(Math.max(newWidth, newHeight));
+                radius = Math.min(radius, MAX_DIAMETER);
+                bubbleTouched
+                    .data("position", newPosition)
+                    .offset(newPosition)
+                    .width(radius)
+                    .height(radius)
+                    .bind("touchend", unhighlight)
+                    .bind("touchend", endDrag)
+                    .addClass("box-highlight");
                 }
             });
 
@@ -45,16 +60,18 @@ let moveBubbleMap = new Map();
      */
     let endDrag = event => {
         $.each(event.changedTouches, (index, touch) => {
-            if (touch.target.movingBox) {
+            if (moveBubbleMap.has(touch.identifier)) {
                 // Change state to "not-moving-anything" by clearing out
                 moveBubbleMap.delete(touch.identifier);
 
             } else if (drawBubbleMap.has(touch.identifier)) {
                 let mapValue = drawBubbleMap.get(touch.identifier);
                 mapValue
-                    // .data({
-                    //     position: mapValue.offset()
-                    // })
+                    .data({
+                        isDrawing: false,
+                        position: mapValue.offset(),
+                        oldPosition: mapValue.offset()
+                    })
                     .removeClass("box-highlight")
                     .bind("touchstart", startMove);
                 drawBubbleMap.delete(touch.identifier);
@@ -78,20 +95,23 @@ let moveBubbleMap = new Map();
             // Take note of the box's current (global) location. Also, set its velocity and acceleration to
             // nothing because, well, _finger_.
             let targetBox = $(touch.target);
+            let previousLocation = targetBox.data('position');
             let startOffset = targetBox.offset();
+
             targetBox.data({
                 position: startOffset,
-                velocity: { x: 0, y: 0, z: 0 },
-                acceleration: { x: 0, y: 0, z: 0 }
+                oldPosition: { left: previousLocation.left, top: previousLocation.top},
+                velocity: {x: 0, y: 0, z: 0},
+                acceleration: {x: 0, y: 0, z: 0},
+                hasNotMoved: 0,
+                isDrawing: false,
+                touchId: touch.identifier
             });
 
-            // Set the drawing area's state to indicate that it is
-            // in the middle of a move.
-            touch.target.movingBox = targetBox;
+            moveBubbleMap.set(touch.identifier, targetBox);
             touch.target.deltaX = touch.pageX - startOffset.left;
             touch.target.deltaY = touch.pageY - startOffset.top;
         });
-
         // Eat up the event so that the drawing area does not
         // deal with it.
         event.stopPropagation();
@@ -122,8 +142,27 @@ let moveBubbleMap = new Map();
 
             // If it's highlighted, we don't accelerate it because it is under a finger.
             if ($element.hasClass("box-highlight")) {
-                return;
-            }
+                if (!$element.data('isDrawing')) {
+                    checkHold($element);
+                }
+                if($element.data('hasNotMoved') > HOLD_TIME) {
+                    let newPosition= {
+                        left: $element.offset().left - (GROWTH_SPEED / 2),
+                        top: $element.offset().top - (GROWTH_SPEED / 2)
+                    };
+                    $element.css({
+                        width: $element.width() + GROWTH_SPEED,
+                        height: $element.height() + GROWTH_SPEED
+                    });
+                    $element.offset(newPosition);
+                    $element[0].deltaX += (GROWTH_SPEED / 2)
+                    $element[0].deltaY += (GROWTH_SPEED / 2)
+                }
+                if ($element.width() > MAX_DIAMETER) {
+                    moveBubbleMap.delete($element.data('touchId'));
+                    $element.remove();
+                }
+            } else {
 
             // Note how we base all of our calculations from the _model_...
             let s = $element.data('position');
@@ -163,7 +202,10 @@ let moveBubbleMap = new Map();
 
             // ...and the final result is sent on a one-way trip to the _view_.
             $(element).offset(s);
+        }
         });
+
+
 
         lastTimestamp = timestamp;
         window.requestAnimationFrame(updateBoxes);
@@ -188,8 +230,12 @@ let moveBubbleMap = new Map();
                 .offset(newPosition)
                 .data({
                     position: newPosition,
+                    oldPosition: newPosition,
                     velocity: { x: 0, y: 0, z: 0 },
-                    acceleration: { x: 0, y: 0, z: 0 }
+                    acceleration: { x: 0, y: 0, z: 0 },
+                    hasNotMoved: 0,
+                    isDrawing: true,
+                    touchId: touch.identifier
                 });
                 //$("<div>test</div>").appendTo($("#drawing-area"));
             drawBubbleMap.set(touch.identifier, newBubble);
@@ -200,7 +246,19 @@ let moveBubbleMap = new Map();
         })
     };
 
+    let checkHold = target => {
+        let currentPosition = target.data('position');
+        let oldPosition = target.data('oldPosition');
+        let leftDifference = Math.pow(currentPosition.left - oldPosition.left, 2);
+        let topDifference = Math.pow(currentPosition.top - oldPosition.top, 2);
+        let distance = Math.sqrt(leftDifference + topDifference);
 
+        if (distance <= HOLD_SENSITIVITY) {
+            target.data('hasNotMoved', target.data('hasNotMoved') + 1);
+        } else {
+            target.data('hasNotMoved', 0);
+        }
+    }
 
     let setDrawingArea = jQueryElements => {
         // Set up any pre-existing box elements for touch behavior.
@@ -212,7 +270,6 @@ let moveBubbleMap = new Map();
             .each((index, element) => {
                 $(element)
                 .bind("touchstart", createBubble)
-                //.bind("touchstart", startMove)
                 .bind("touchmove", trackDrag)
                 .bind("touchend", endDrag)
 
@@ -225,7 +282,12 @@ let moveBubbleMap = new Map();
                     .data({
                         position: $(element).offset(),
                         velocity: { x: 0, y: 0, z: 0 },
-                        acceleration: { x: 0, y: 0, z: 0 }
+                        acceleration: { x: 0, y: 0, z: 0 },
+                        oldPosition: $(element).offset(),
+                        hasNotMoved: 0,
+                        isDrawing: false,
+                        touchId: 0
+
                     });
             });
 
